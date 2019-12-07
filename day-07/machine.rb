@@ -17,7 +17,7 @@ class Machine
 
       break if ins[:opcode] == '99'
 
-      puts "ins: #{ins}"
+      # puts "ins: #{ins}"
 
       case ins[:opcode]
       when '01'
