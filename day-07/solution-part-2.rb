@@ -7,27 +7,12 @@ phase_sequences = [5,6,7,8,9].permutation.to_a
 
 outputs = []
 
-class ThreadableIO
-  def initialize(*initial_values)
-    @queue = Queue.new
-    initial_values.each { |v| @queue.push(v) }
-  end
-
-  def get_input
-    @queue.pop
-  end
-
-  def write(value)
-    @queue.push(value)
-  end
-end
-
 phase_sequences.each do |sequence|
-  a_input = ThreadableIO.new(sequence[0], 0)
-  b_input = ThreadableIO.new(sequence[1])
-  c_input = ThreadableIO.new(sequence[2])
-  d_input = ThreadableIO.new(sequence[3])
-  e_input = ThreadableIO.new(sequence[4])
+  a_input = MachineIO.new(sequence[0], 0)
+  b_input = MachineIO.new(sequence[1])
+  c_input = MachineIO.new(sequence[2])
+  d_input = MachineIO.new(sequence[3])
+  e_input = MachineIO.new(sequence[4])
 
   amps = [
     Thread.new { Machine.new(program, a_input, b_input).execute },
@@ -39,7 +24,7 @@ phase_sequences.each do |sequence|
 
   amps.each { |a| a.join }
 
-  outputs << a_input.get_input
+  outputs << a_input.read
 end
 
 puts "outputs length: #{outputs.length}"

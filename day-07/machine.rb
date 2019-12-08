@@ -94,7 +94,7 @@ class Machine
 
   def input
     dest = state[pc + 1]
-    num = @input_stream.get_input
+    num = @input_stream.read
     state[dest] = num
     self.pc += 2
   end
@@ -144,24 +144,17 @@ class Machine
   end
 end
 
-class MachineInput
-  def initialize(values)
-    @values = values
+class MachineIO
+  def initialize(*initial_values)
+    @queue = Queue.new
+    initial_values.each { |v| @queue.push(v) }
   end
 
-  def get_input
-    @values.slice!(0)
-  end
-end
-
-class MachineOutput
-  attr_reader :output
-
-  def initialize
-    @output = nil
+  def read
+    @queue.pop
   end
 
   def write(value)
-    @output = value
+    @queue.push(value)
   end
 end

@@ -8,16 +8,16 @@ phase_sequences = [0,1,2,3,4].permutation.to_a
 outputs = []
 
 phase_sequences.each do |phase_sequence|
-  machine_output = MachineOutput.new
+  io = MachineIO.new(0)
 
   phase_sequence.each do |phase|
-    input_signal = machine_output.output.nil? ? 0 : machine_output.output
-
-    machine_input = MachineInput.new([phase, input_signal])
-    Machine.new(program, machine_input, machine_output).execute
+    input_signal = io.read
+    io.write(phase)
+    io.write(input_signal)
+    Machine.new(program, io, io).execute
   end
 
-  outputs << machine_output.output
+  outputs << io.read
 end
 
 puts "maximum #{outputs.max}"
