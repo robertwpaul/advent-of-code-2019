@@ -14,134 +14,140 @@ class Machine
 
   def execute
     loop do
-      ins = read_instruction
+      opcode = instruction % 100
 
-      break if ins[:opcode] == '99'
+      break if opcode == 99
 
-      puts "ins: #{ins}"
-
-      case ins[:opcode]
-      when '01'
-        add(ins[:param1_mode], ins[:param2_mode])
-      when '02'
-        multiply(ins[:param1_mode], ins[:param2_mode])
-      when '03'
+      case opcode
+      when 1
+        add
+      when 2
+        multiply
+      when 3
         input
-      when '04'
-        output(ins[:param1_mode])
-      when '05'
-        jump_if_true(ins[:param1_mode], ins[:param2_mode])
-      when '06'
-        jump_if_false(ins[:param1_mode], ins[:param2_mode])
-      when '07'
-        less_than(ins[:param1_mode], ins[:param2_mode])
-      when '08'
-        equals(ins[:param1_mode], ins[:param2_mode])
+      when 4
+        output
+      when 5
+        jump_if_true
+      when 6
+        jump_if_false
+      when 7
+        less_than
+      when 8
+        equals
       else
-        puts "Unrecognised opcode #{ins[:opcode]}"
-        puts "pc: #{pc}"
-        puts "state: #{state}"
-        break
+        raise "Unrecognised opcode: #{opcode}"
       end
     end
   end
 
   private
 
-  def read_instruction
-    instruction = state[pc]
-    # puts "instruction #{instruction} at #{pc}; state: #{state}"
-    padded = instruction.to_s.rjust(5, '0')
+  def instruction
+    state[pc]
+  end
 
-    param1_mode = padded[2] == '0' ? PARAM_MODE_POSITION : PARAM_MODE_IMMEDIATE
-    param2_mode = padded[1] == '0' ? PARAM_MODE_POSITION : PARAM_MODE_IMMEDIATE
-    param3_mode = padded[0] == '0' ? PARAM_MODE_POSITION : PARAM_MODE_IMMEDIATE
+  def param_1_mode
+    instruction % 1000 / 100
+  end
 
-    return {
-      opcode: padded.slice(3, 2),
-      param1_mode: param1_mode,
-      param2_mode: param2_mode,
-      param3_mode: param3_mode
-    }
+  def param_2_mode
+    instruction % 10000 / 1000
+  end
+
+  def param_3_mode
+    instruction % 100000 / 10000
   end
 
   def read_value(mode, position)
     if mode == PARAM_MODE_IMMEDIATE
       state[position]
-    elsif PARAM_MODE_POSITION
+    elsif mode == PARAM_MODE_POSITION
       state[state[position]]
     end
   end
 
-  def add(mode_1, mode_2)
-    first_operand = read_value(mode_1, pc + 1)
-    second_operand = read_value(mode_2, pc + 2)
-    dest = state[pc + 3]
+  def write_value(value, position)
+    state[state[position]] = value
+  end
 
-    state[dest] = first_operand + second_operand
+  def add
+    op1 = read_value(param_1_mode, pc + 1)
+    op2 = read_value(param_2_mode, pc + 2)
+
+    result = op1 + op2
+
+    write_value(result, pc + 3)
 
     self.pc += 4
   end
 
-  def multiply(mode_1, mode_2)
-    first_operand = read_value(mode_1, pc + 1)
-    second_operand = read_value(mode_2, pc + 2)
-    dest = state[pc + 3]
+  def multiply
+    op1 = read_value(param_1_mode, pc + 1)
+    op2 = read_value(param_2_mode, pc + 2)
 
-    state[dest] = first_operand * second_operand
+    result = op1 * op2
+
+    write_value(result, pc + 3)
 
     self.pc += 4
   end
 
   def input
-    dest = state[pc + 1]
-    puts 'input:'
+    puts "Input: "
     num = gets.strip.to_i
-
-    state[dest] = num
+    write_value(num, pc + 1)
     self.pc += 2
   end
 
-  def output(mode_1)
-    value = read_value(mode_1, pc + 1)
-    puts "Output: #{value}"
+  def output
+    value = read_value(param_1_mode, pc + 1)
+    puts "Value: #{value}"
     self.pc += 2
   end
 
-  def jump_if_true(mode_1, mode_2)
-    param1 = read_value(mode_1, pc + 1)
+  def jump_if_true
+    param1 = read_value(param_1_mode, pc + 1)
+
     if param1.positive?
-      self.pc = read_value(mode_2, pc + 2)
+      self.pc = read_value(param_2_mode, pc + 2)
     else
       self.pc += 3
     end
   end
 
-  def jump_if_false(mode_1, mode_2)
-    param1 = read_value(mode_1, pc + 1)
+  def jump_if_false
+    param1 = read_value(param_1_mode, pc + 1)
+
     if param1.zero?
-      self.pc = read_value(mode_2, pc + 2)
+      self.pc = read_value(param_2_mode, pc + 2)
     else
       self.pc += 3
     end
   end
 
-  def less_than(mode_1, mode_2)
-    first_operand = read_value(mode_1, pc + 1)
-    second_operand = read_value(mode_2, pc + 2)
-    dest = state[pc + 3]
+  def less_than
+    param1 = read_value(param_1_mode, pc + 1)
+    param2 = read_value(param_2_mode, pc + 2)
 
-    state[dest] = first_operand < second_operand ? 1 : 0
+    if param1 < param2
+      write_value(1, pc + 3)
+    else
+      write_value(0, pc + 3)
+    end
 
     self.pc += 4
   end
 
-  def equals(mode_1, mode_2)
-    first_operand = read_value(mode_1, pc + 1)
-    second_operand = read_value(mode_2, pc + 2)
-    dest = state[pc + 3]
+  def equals
+    param1 = read_value(param_1_mode, pc + 1)
+    param2 = read_value(param_2_mode, pc + 2)
 
-    state[dest] = first_operand == second_operand ? 1 : 0
+    if param1 == param2
+      write_value(1, pc + 3)
+    else
+      write_value(0, pc + 3)
+    end
 
     self.pc += 4
   end
